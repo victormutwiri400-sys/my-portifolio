@@ -1,0 +1,29 @@
+.pdf-preview {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff5f5, #ffe4e6);
+  color: #b91c1c;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pdf-preview span:first-child {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 10px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.pdf-preview:hover {
+  background: #fee2e2;
+}

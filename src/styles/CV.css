@@ -1,0 +1,202 @@
+.cv-section {
+  padding: 40px 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.cv-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.cv-container h2 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.cv-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.cv-filters button {
+  padding: 10px 20px;
+  background: white;
+  color: #666;
+  border: 2px solid #ddd;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.cv-filters button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.cv-filters button:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.add-btn {
+  display: block;
+  margin: 0 auto 30px;
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.cv-form {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.cv-form .form-group {
+  margin-bottom: 20px;
+}
+
+.cv-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 600;
+}
+
+.cv-form input,
+.cv-form textarea,
+.cv-form select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.cv-form input:focus,
+.cv-form textarea:focus,
+.cv-form select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.cv-entries {
+  display: grid;
+  gap: 20px;
+}
+
+.cv-entry {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 5px solid #667eea;
+}
+
+.cv-entry:hover {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.entry-type {
+  background: #667eea;
+  color: white;
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.edit-btn-small,
+.delete-btn-small {
+  padding: 6px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.edit-btn-small {
+  background: #3498db;
+  color: white;
+}
+
+.edit-btn-small:hover {
+  background: #2980b9;
+}
+
+.delete-btn-small {
+  background: #e74c3c;
+  color: white;
+}
+
+.delete-btn-small:hover {
+  background: #c0392b;
+}
+
+.cv-entry h3 {
+  color: #333;
+  margin: 10px 0;
+  font-size: 1.3rem;
+}
+
+.organization {
+  color: #666;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.duration {
+  color: #999;
+  font-size: 0.95rem;
+  margin: 8px 0;
+}
+
+.description {
+  color: #555;
+  line-height: 1.6;
+  margin-top: 15px;
+}
+
+.no-entries {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+  font-size: 1.1rem;
+}
