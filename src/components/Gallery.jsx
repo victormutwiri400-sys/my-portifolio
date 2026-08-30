@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import api, { assetUrl } from "../api";
+import { toast } from "react-toastify";
+import api, { assetUrl, getRequestError } from "../api";
 import LoadingSpinner from "./LoadingSpinner";
 import AssetPreview from "./AssetPreview";
+import Modal from "./Modal";
+import ConfirmDialog from "./ConfirmDialog";
 import "../styles/Gallery.css";
 
-const Gallery = () => {
+const Gallery = ({ isAdmin }) => {
   const [photos, setPhotos] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmId, setConfirmId] = useState(null);
   const [caption, setCaption] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,25 +54,26 @@ const Gallery = () => {
       setCaption("");
       setSelectedFile(null);
       setIsUploading(false);
+      toast.success("Photo added to gallery successfully!");
       await fetchPhotos();
-    } catch (_err) {
-      // A spinner is shown while an upload is in progress.
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to upload photo"));
     } finally {
       setIsWorking(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this photo?")) {
-      try {
-        setIsWorking(true);
-        await api.delete(`/gallery/${id}`);
-        await fetchPhotos();
-      } catch (_err) {
-        // Keep the current gallery when deletion cannot be completed.
-      } finally {
-        setIsWorking(false);
-      }
+  const deletePhoto = async () => {
+    setIsWorking(true);
+    try {
+      await api.delete(`/gallery/${confirmId}`);
+      toast.success("Photo deleted successfully!");
+      await fetchPhotos();
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to delete photo"));
+    } finally {
+      setIsWorking(false);
+      setConfirmId(null);
     }
   };
 
@@ -77,13 +82,14 @@ const Gallery = () => {
       <div className="gallery-container">
         <h2>Gallery - Graduation & Moments</h2>
 
-        <button onClick={() => setIsUploading(true)} className="upload-btn" disabled={isWorking}>
+        {isAdmin && <button onClick={() => setIsUploading(true)} className="upload-btn" disabled={isWorking}>
           + Upload Photo
-        </button>
+        </button>}
 
         {isWorking && !isUploading && <LoadingSpinner label="Updating gallery..." />}
 
         {isUploading && (
+          <Modal title="Upload gallery item" onClose={() => setIsUploading(false)}>
           <form onSubmit={handleSubmit} className="gallery-form">
             <div className="form-group">
               <label>Photo Caption</label>
@@ -124,13 +130,12 @@ const Gallery = () => {
               </button>
             </div>
           </form>
+          </Modal>
         )}
 
         {loading ? <LoadingSpinner label="Loading gallery..." /> : <div className="gallery-grid">
           {photos.length === 0 ? (
-            <p className="no-photos">
-              No photos yet. Upload your first memory!
-            </p>
+            <div className="empty-state"><span>◫</span><p>No gallery items added yet. {isAdmin && "Click above to upload!"}</p></div>
           ) : (
             photos.map((photo) => (
               <div key={photo.id} className="gallery-item">
@@ -144,17 +149,28 @@ const Gallery = () => {
                 </div>
                 <div className="photo-info">
                   {photo.caption && <p className="caption">{photo.caption}</p>}
-                  <button
-                    onClick={() => handleDelete(photo.id)}
+                  {isAdmin && <button
+                    onClick={() => setConfirmId(photo.id)}
                     className="delete-btn"
                   >
                     Delete
-                  </button>
+                  </button>}
                 </div>
               </div>
             ))
           )}
         </div>}
+
+        {confirmId !== null && (
+          <ConfirmDialog
+            title="Delete gallery item"
+            message="This photo will be permanently removed from your gallery. Continue?"
+            confirmLabel="Delete photo"
+            busy={isWorking}
+            onCancel={() => setConfirmId(null)}
+            onConfirm={deletePhoto}
+          />
+        )}
       </div>
     </section>
   );

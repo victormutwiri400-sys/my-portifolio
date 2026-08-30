@@ -1,663 +1,402 @@
-"""
-Portfolio Backend - Flask Application
-Handles profile, CV entries, certificates, and gallery photos
-"""
+"""Portfolio Backend - Flask app with Cloudinary image storage and MySQL/MariaDB."""
+import os
+import uuid
+from datetime import datetime
+from functools import wraps
 
+import cloudinary
+import cloudinary.uploader
+import mysql.connector
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
-import mysql.connector
 from mysql.connector import Error
-from dotenv import load_dotenv
-import os
-from datetime import datetime
-import json
+from werkzeug.utils import secure_filename
 
-# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# Configuration
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
+    cloudinary.config(cloud_name=CLOUDINARY_CLOUD_NAME, api_key=CLOUDINARY_API_KEY, api_secret=CLOUDINARY_API_SECRET, secure=True)
 
-# Create uploads folder if it doesn't exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "pdf"}
 
-# Database Configuration
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'user': os.getenv('DB_USER', 'root'),
-    'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'portfolio')
+    "host": os.getenv("DB_HOST", "mysql-victordesigner.alwaysdata.net"),
+    "user": os.getenv("DB_USER", "victordesigner"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_NAME", "victordesigner_portifolio"),
 }
 
+# Secret admin token required for every mutating request (POST/PUT/DELETE).
+# Set a long, random value in your .env — never commit the real token.
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
-# Database Connection Helper
+
 def get_db_connection():
-    """Create and return a database connection"""
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
-        return connection
+        return mysql.connector.connect(**DB_CONFIG)
     except Error as e:
-        print(f"Error connecting to MySQL: {e}")
+        print(f"Database connection error: {e}")
         return None
 
 
-# Helper Functions
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def save_uploaded_file(file):
-    """Save uploaded file and return filename"""
-    if file and file.filename and allowed_file(file.filename):
-        filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-        return filename
-    return None
-
-
 def response(status, message, data=None, status_code=200):
-    """Create standardized JSON response"""
-    resp = {
-        'status': status,
-        'message': message
-    }
+    result = {"status": status, "message": message}
     if data is not None:
-        resp['data'] = data
-    return jsonify(resp), status_code
+        result["data"] = data
+    return jsonify(result), status_code
 
 
-# ============================================================================
-# PROFILE ROUTES
-# ============================================================================
+def allowed_file(filename):
+    return bool(filename and "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS)
 
-@app.route('/api/profile', methods=['GET'])
-def get_profile():
-    """Get profile information"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
+
+def cloudinary_ready():
+    return bool(CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET)
+
+
+def upload_to_cloudinary(file, folder="portfolio"):
+    if not cloudinary_ready() or not file or not file.filename or not allowed_file(file.filename):
+        return None
     try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM profile LIMIT 1")
-        profile = cursor.fetchone()
-        cursor.close()
-        connection.close()
-        
-        if profile:
-            # Convert image path to URL
-            if profile.get('profile_image'):
-                profile['profile_image'] = f"/uploads/{profile['profile_image']}"
-            return response('success', 'Profile retrieved', profile)
-        else:
-            return response('error', 'Profile not found', None, 404)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+        original_name = secure_filename(file.filename)
+        unique_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:10]}"
+        result = cloudinary.uploader.upload(file, public_id=f"{folder}/{unique_name}", resource_type="image", overwrite=False, use_filename=False)
+        return {"url": result.get("secure_url"), "public_id": result.get("public_id")}
+    except Exception as e:
+        print(f"Cloudinary upload error: {e}")
+        return None
 
 
-@app.route('/api/profile', methods=['POST', 'PUT'])
-def create_or_update_profile():
-    """Create or update profile"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
+def upload_base64_to_cloudinary(data, folder="portfolio"):
+    if not cloudinary_ready() or not data or not isinstance(data, str) or not data.strip():
+        return None
     try:
-        name = request.form.get('name', '').strip()
-        title = request.form.get('title', '').strip()
-        bio = request.form.get('bio', '').strip()
-        
-        if not name or not title:
-            return response('error', 'Name and title are required', None, 400)
-        
-        # Handle file upload
-        profile_image = None
-        if 'profile_image' in request.files:
-            profile_image = save_uploaded_file(request.files['profile_image'])
-        
-        cursor = connection.cursor(dictionary=True)
-        
-        # Check if profile exists
-        cursor.execute("SELECT id FROM profile")
-        existing = cursor.fetchone()
-        
-        if existing:
-            # Update existing profile
-            if profile_image:
-                cursor.execute(
-                    "UPDATE profile SET name=%s, title=%s, bio=%s, profile_image=%s WHERE id=%s",
-                    (name, title, bio, profile_image, existing['id'])
-                )
-            else:
-                cursor.execute(
-                    "UPDATE profile SET name=%s, title=%s, bio=%s WHERE id=%s",
-                    (name, title, bio, existing['id'])
-                )
+        result = cloudinary.uploader.upload(data.strip(), folder=folder, resource_type="image")
+        return {"url": result.get("secure_url"), "public_id": result.get("public_id")}
+    except Exception as e:
+        print(f"Cloudinary base64 upload error: {e}")
+        return None
+
+
+def handle_image_upload(field_names, folder="portfolio"):
+    if not cloudinary_ready():
+        return None, "Cloudinary is not configured. Please add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET."
+    keys = ("image", "image_base64", "image_url", "imageUrl", "photo", "file", "certificate", "profile_image", "gallery_photo")
+    for name in tuple(field_names) + keys:
+        file = request.files.get(name)
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                return None, "Invalid file type. Allowed: png, jpg, jpeg, gif, webp"
+            uploaded = upload_to_cloudinary(file, folder=folder)
+            return (uploaded, None) if uploaded else (None, "Unable to upload image to Cloudinary.")
+    for key in keys:
+        value = request.form.get(key, "").strip()
+        if value.startswith(("http://", "https://")):
+            return None, "Image URLs are not accepted here. Please upload an image file."
+        if value:
+            uploaded = upload_base64_to_cloudinary(value, folder=folder)
+            return (uploaded, None) if uploaded else (None, f'Invalid image data in "{key}".')
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, str) and value.strip():
+                if value.strip().startswith(("http://", "https://")):
+                    return None, "Image URLs are not accepted here. Please upload an image file."
+                uploaded = upload_base64_to_cloudinary(value.strip(), folder=folder)
+                return (uploaded, None) if uploaded else (None, f'Invalid image data in "{key}".')
+    return None, None
+
+
+def with_db(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        connection = get_db_connection()
+        if not connection:
+            return response("error", "Database connection failed", None, 500)
+        try:
+            result = f(connection, *args, **kwargs)
             connection.commit()
-            cursor.close()
-            connection.close()
-            return response('success', 'Profile updated successfully')
+            return result
+        except Error as e:
+            connection.rollback()
+            return response("error", f"Database error: {str(e)}", None, 500)
+        finally:
+            if connection and connection.is_connected():
+                connection.close()
+    return wrapper
+
+
+def admin_required(f):
+    """Reject any mutating request that does not carry the admin token.
+
+    Guards against direct POST/PUT/DELETE calls from the browser, curl, or
+    Postman even when the UI hides the management buttons.
+    """
+
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        provided = request.headers.get("X-Admin-Token", "")
+        if not ADMIN_TOKEN or provided != ADMIN_TOKEN:
+            return response("error", "Unauthorized. A valid admin token is required.", None, 401)
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
+@app.route("/api/profile", methods=["GET"])
+@with_db
+def get_profile(connection):
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM profile LIMIT 1")
+    profile = cursor.fetchone()
+    if profile:
+        return response("success", "Profile retrieved", profile)
+    return response("error", "Profile not found", None, 404)
+
+
+@app.route("/api/profile", methods=["POST", "PUT"])
+@admin_required
+@with_db
+def create_or_update_profile(connection):
+    name = request.form.get("name", "").strip()
+    title = request.form.get("title", "").strip()
+    bio = request.form.get("bio", "").strip()
+    if not name or not title:
+        return response("error", "Name and title are required", None, 400)
+    image_data, upload_error = handle_image_upload(("profile_image", "image", "photo", "file"), folder="portfolio/profile")
+    if upload_error:
+        return response("error", upload_error, None, 400)
+    profile_image = image_data["url"] if image_data else None
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT id FROM profile LIMIT 1")
+    existing = cursor.fetchone()
+    if existing:
+        if profile_image:
+            cursor.execute("UPDATE profile SET name=%s, title=%s, bio=%s, profile_image=%s WHERE id=%s", (name, title, bio, profile_image, existing["id"]))
         else:
-            # Create new profile
-            cursor.execute(
-                "INSERT INTO profile (name, title, bio, profile_image) VALUES (%s, %s, %s, %s)",
-                (name, title, bio, profile_image)
-            )
-            connection.commit()
-            profile_id = cursor.lastrowid
-            cursor.close()
-            connection.close()
-            return response('success', 'Profile created successfully', {'id': profile_id})
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+            cursor.execute("UPDATE profile SET name=%s, title=%s, bio=%s WHERE id=%s", (name, title, bio, existing["id"]))
+        return response("success", "Profile updated successfully")
+    cursor.execute("INSERT INTO profile (name, title, bio, profile_image) VALUES (%s, %s, %s, %s)", (name, title, bio, profile_image))
+    return response("success", "Profile created successfully", {"id": cursor.lastrowid}, 201)
 
 
-# ============================================================================
-# CV ENTRIES ROUTES
-# ============================================================================
-
-@app.route('/api/cv-entries', methods=['GET'])
-def get_cv_entries():
-    """Get all CV entries with optional filtering by section_type"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        section_type = request.args.get('section_type')
-        cursor = connection.cursor(dictionary=True)
-        
-        if section_type and section_type in ['education', 'experience', 'skill']:
-            cursor.execute(
-                "SELECT * FROM cv_entries WHERE section_type=%s ORDER BY id DESC",
-                (section_type,)
-            )
-        else:
-            cursor.execute("SELECT * FROM cv_entries ORDER BY id DESC")
-        
-        entries = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        
-        return response('success', 'CV entries retrieved', entries)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+@app.route("/api/cv-entries", methods=["GET"])
+@with_db
+def get_cv_entries(connection):
+    section_type = request.args.get("section_type")
+    cursor = connection.cursor(dictionary=True)
+    if section_type in ["education", "experience", "skill"]:
+        cursor.execute("SELECT * FROM cv_entries WHERE section_type=%s ORDER BY id DESC", (section_type,))
+    else:
+        cursor.execute("SELECT * FROM cv_entries ORDER BY id DESC")
+    return response("success", "CV entries retrieved", cursor.fetchall())
 
 
-@app.route('/api/cv-entries', methods=['POST'])
-def create_cv_entry():
-    """Create a new CV entry"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        data = request.get_json()
-        
-        section_type = data.get('section_type', '').strip()
-        title = data.get('title', '').strip()
-        organization = data.get('organization', '').strip()
-        duration = data.get('duration', '').strip()
-        description = data.get('description', '').strip()
-        
-        # Validation
-        if not section_type or section_type not in ['education', 'experience', 'skill']:
-            return response('error', 'Invalid section_type. Must be education, experience, or skill', None, 400)
-        if not title:
-            return response('error', 'Title is required', None, 400)
-        
-        cursor = connection.cursor()
-        cursor.execute(
-            "INSERT INTO cv_entries (section_type, title, organization, duration, description) VALUES (%s, %s, %s, %s, %s)",
-            (section_type, title, organization, duration, description)
-        )
-        connection.commit()
-        entry_id = cursor.lastrowid
-        cursor.close()
-        connection.close()
-        
-        return response('success', 'CV entry created successfully', {'id': entry_id}, 201)
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/cv-entries", methods=["POST"])
+@admin_required
+@with_db
+def create_cv_entry(connection):
+    data = request.get_json(silent=True) or {}
+    section_type = data.get("section_type", "").strip()
+    title = data.get("title", "").strip()
+    organization = data.get("organization", "").strip()
+    duration = data.get("duration", "").strip()
+    description = data.get("description", "").strip()
+    if section_type not in ["education", "experience", "skill"]:
+        return response("error", "Invalid section_type. Must be education, experience, or skill", None, 400)
+    if not title:
+        return response("error", "Title is required", None, 400)
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO cv_entries (section_type, title, organization, duration, description) VALUES (%s, %s, %s, %s, %s)", (section_type, title, organization, duration, description))
+    return response("success", "CV entry created successfully", {"id": cursor.lastrowid}, 201)
 
 
-@app.route('/api/cv-entries/<int:entry_id>', methods=['GET'])
-def get_cv_entry(entry_id):
-    """Get a specific CV entry"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM cv_entries WHERE id=%s", (entry_id,))
-        entry = cursor.fetchone()
-        cursor.close()
-        connection.close()
-        
-        if entry:
-            return response('success', 'CV entry retrieved', entry)
-        else:
-            return response('error', 'CV entry not found', None, 404)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+@app.route("/api/cv-entries/<int:entry_id>", methods=["GET"])
+@with_db
+def get_cv_entry(connection, entry_id):
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM cv_entries WHERE id=%s", (entry_id,))
+    entry = cursor.fetchone()
+    if entry:
+        return response("success", "CV entry retrieved", entry)
+    return response("error", "CV entry not found", None, 404)
 
 
-@app.route('/api/cv-entries/<int:entry_id>', methods=['PUT'])
-def update_cv_entry(entry_id):
-    """Update a CV entry"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        data = request.get_json()
-        
-        section_type = data.get('section_type', '').strip()
-        title = data.get('title', '').strip()
-        organization = data.get('organization', '').strip()
-        duration = data.get('duration', '').strip()
-        description = data.get('description', '').strip()
-        
-        if section_type and section_type not in ['education', 'experience', 'skill']:
-            return response('error', 'Invalid section_type', None, 400)
-        if not title:
-            return response('error', 'Title is required', None, 400)
-        
-        cursor = connection.cursor()
-        cursor.execute(
-            "UPDATE cv_entries SET section_type=%s, title=%s, organization=%s, duration=%s, description=%s WHERE id=%s",
-            (section_type, title, organization, duration, description, entry_id)
-        )
-        connection.commit()
-        
-        if cursor.rowcount == 0:
-            return response('error', 'CV entry not found', None, 404)
-        
-        cursor.close()
-        connection.close()
-        return response('success', 'CV entry updated successfully')
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/cv-entries/<int:entry_id>", methods=["PUT"])
+@admin_required
+@with_db
+def update_cv_entry(connection, entry_id):
+    data = request.get_json(silent=True) or {}
+    section_type = data.get("section_type", "").strip()
+    title = data.get("title", "").strip()
+    organization = data.get("organization", "").strip()
+    duration = data.get("duration", "").strip()
+    description = data.get("description", "").strip()
+    if section_type and section_type not in ["education", "experience", "skill"]:
+        return response("error", "Invalid section_type", None, 400)
+    if not title:
+        return response("error", "Title is required", None, 400)
+    cursor = connection.cursor()
+    cursor.execute("UPDATE cv_entries SET section_type=%s, title=%s, organization=%s, duration=%s, description=%s WHERE id=%s", (section_type, title, organization, duration, description, entry_id))
+    if cursor.rowcount == 0:
+        return response("error", "CV entry not found", None, 404)
+    return response("success", "CV entry updated successfully")
 
 
-@app.route('/api/cv-entries/<int:entry_id>', methods=['DELETE'])
-def delete_cv_entry(entry_id):
-    """Delete a CV entry"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor()
-        cursor.execute("DELETE FROM cv_entries WHERE id=%s", (entry_id,))
-        connection.commit()
-        
-        if cursor.rowcount == 0:
-            return response('error', 'CV entry not found', None, 404)
-        
-        cursor.close()
-        connection.close()
-        return response('success', 'CV entry deleted successfully')
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/cv-entries/<int:entry_id>", methods=["DELETE"])
+@admin_required
+@with_db
+def delete_cv_entry(connection, entry_id):
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM cv_entries WHERE id=%s", (entry_id,))
+    if cursor.rowcount == 0:
+        return response("error", "CV entry not found", None, 404)
+    return response("success", "CV entry deleted successfully")
 
 
-# ============================================================================
-# CERTIFICATES ROUTES
-# ============================================================================
-
-@app.route('/api/certificates', methods=['GET'])
-def get_certificates():
-    """Get all certificates"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM certificates ORDER BY id DESC")
-        certificates = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        
-        # Convert image paths to URLs
-        for cert in certificates:
-            if cert.get('image_url'):
-                cert['image_url'] = f"/uploads/{cert['image_url']}"
-        
-        return response('success', 'Certificates retrieved', certificates)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+@app.route("/api/certificates", methods=["GET"])
+@with_db
+def get_certificates(connection):
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM certificates ORDER BY id DESC")
+    return response("success", "Certificates retrieved", cursor.fetchall())
 
 
-@app.route('/api/certificates', methods=['POST'])
-def create_certificate():
-    """Create a new certificate"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        title = request.form.get('title', '').strip()
-        issuer = request.form.get('issuer', '').strip()
-        
-        if not title:
-            return response('error', 'Title is required', None, 400)
-        
-        if 'image' not in request.files:
-            return response('error', 'Certificate image is required', None, 400)
-        
-        image_url = save_uploaded_file(request.files['image'])
-        if not image_url:
-            return response('error', 'Invalid file type. Allowed: png, jpg, jpeg, gif, webp', None, 400)
-        
-        cursor = connection.cursor()
-        cursor.execute(
-            "INSERT INTO certificates (title, issuer, image_url) VALUES (%s, %s, %s)",
-            (title, issuer, image_url)
-        )
-        connection.commit()
-        certificate_id = cursor.lastrowid
-        cursor.close()
-        connection.close()
-        
-        return response('success', 'Certificate created successfully', {'id': certificate_id}, 201)
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/certificates", methods=["POST"])
+@admin_required
+@with_db
+def create_certificate(connection):
+    title = request.form.get("title", "").strip()
+    issuer = request.form.get("issuer", "").strip()
+    if not title:
+        return response("error", "Title is required", None, 400)
+    image_data, upload_error = handle_image_upload(("image", "photo", "file", "certificate"), folder="portfolio/certificates")
+    if upload_error:
+        return response("error", upload_error, None, 400)
+    if not image_data:
+        return response("error", "Certificate image is required.", None, 400)
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO certificates (title, issuer, image_url) VALUES (%s, %s, %s)", (title, issuer, image_data["url"]))
+    return response("success", "Certificate created successfully", {"id": cursor.lastrowid}, 201)
 
 
-@app.route('/api/certificates/<int:cert_id>', methods=['GET'])
-def get_certificate(cert_id):
-    """Get a specific certificate"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM certificates WHERE id=%s", (cert_id,))
-        certificate = cursor.fetchone()
-        cursor.close()
-        connection.close()
-        
-        if certificate:
-            if certificate.get('image_url'):
-                certificate['image_url'] = f"/uploads/{certificate['image_url']}"
-            return response('success', 'Certificate retrieved', certificate)
-        else:
-            return response('error', 'Certificate not found', None, 404)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+@app.route("/api/certificates/<int:cert_id>", methods=["GET"])
+@with_db
+def get_certificate(connection, cert_id):
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM certificates WHERE id=%s", (cert_id,))
+    certificate = cursor.fetchone()
+    if certificate:
+        return response("success", "Certificate retrieved", certificate)
+    return response("error", "Certificate not found", None, 404)
 
 
-@app.route('/api/certificates/<int:cert_id>', methods=['DELETE'])
-def delete_certificate(cert_id):
-    """Delete a certificate"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        
-        # Get certificate to delete image file
-        cursor.execute("SELECT image_url FROM certificates WHERE id=%s", (cert_id,))
-        certificate = cursor.fetchone()
-        
-        if not certificate:
-            return response('error', 'Certificate not found', None, 404)
-        
-        # Delete from database
-        cursor.execute("DELETE FROM certificates WHERE id=%s", (cert_id,))
-        connection.commit()
-        cursor.close()
-        connection.close()
-        
-        # Delete image file
-        if certificate.get('image_url'):
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], certificate['image_url'])
-            if os.path.exists(file_path):
-                os.remove(file_path)
-        
-        return response('success', 'Certificate deleted successfully')
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/certificates/<int:cert_id>", methods=["DELETE"])
+@admin_required
+@with_db
+def delete_certificate(connection, cert_id):
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM certificates WHERE id=%s", (cert_id,))
+    if cursor.rowcount == 0:
+        return response("error", "Certificate not found", None, 404)
+    return response("success", "Certificate deleted successfully")
 
 
-# ============================================================================
-# GALLERY ROUTES
-# ============================================================================
-
-@app.route('/api/gallery', methods=['GET'])
-def get_gallery_photos():
-    """Get all gallery photos"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM gallery_photos ORDER BY id DESC")
-        photos = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        
-        # Convert image paths to URLs
-        for photo in photos:
-            if photo.get('image_url'):
-                photo['image_url'] = f"/uploads/{photo['image_url']}"
-        
-        return response('success', 'Gallery photos retrieved', photos)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+@app.route("/api/gallery", methods=["GET"])
+@with_db
+def get_gallery_photos(connection):
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM gallery_photos ORDER BY id DESC")
+    return response("success", "Gallery photos retrieved", cursor.fetchall())
 
 
-@app.route('/api/gallery', methods=['POST'])
-def create_gallery_photo():
-    """Add a new photo to gallery"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        caption = request.form.get('caption', '').strip()
-        
-        if 'image' not in request.files:
-            return response('error', 'Photo image is required', None, 400)
-        
-        image_url = save_uploaded_file(request.files['image'])
-        if not image_url:
-            return response('error', 'Invalid file type. Allowed: png, jpg, jpeg, gif, webp', None, 400)
-        
-        cursor = connection.cursor()
-        cursor.execute(
-            "INSERT INTO gallery_photos (caption, image_url) VALUES (%s, %s)",
-            (caption, image_url)
-        )
-        connection.commit()
-        photo_id = cursor.lastrowid
-        cursor.close()
-        connection.close()
-        
-        return response('success', 'Photo added to gallery successfully', {'id': photo_id}, 201)
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/gallery", methods=["POST"])
+@admin_required
+@with_db
+def create_gallery_photo(connection):
+    caption = request.form.get("caption", "").strip()
+    image_data, upload_error = handle_image_upload(("image", "photo", "file", "gallery_photo"), folder="portfolio/gallery")
+    if upload_error:
+        return response("error", upload_error, None, 400)
+    if not image_data:
+        return response("error", "Gallery image is required.", None, 400)
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO gallery_photos (caption, image_url) VALUES (%s, %s)", (caption, image_data["url"]))
+    return response("success", "Photo added to gallery successfully", {"id": cursor.lastrowid}, 201)
 
 
-@app.route('/api/gallery/<int:photo_id>', methods=['GET'])
-def get_gallery_photo(photo_id):
-    """Get a specific gallery photo"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM gallery_photos WHERE id=%s", (photo_id,))
-        photo = cursor.fetchone()
-        cursor.close()
-        connection.close()
-        
-        if photo:
-            if photo.get('image_url'):
-                photo['image_url'] = f"/uploads/{photo['image_url']}"
-            return response('success', 'Photo retrieved', photo)
-        else:
-            return response('error', 'Photo not found', None, 404)
-    except Error as e:
-        return response('error', f'Database error: {str(e)}', None, 500)
+@app.route("/api/gallery/<int:photo_id>", methods=["GET"])
+@with_db
+def get_gallery_photo(connection, photo_id):
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM gallery_photos WHERE id=%s", (photo_id,))
+    photo = cursor.fetchone()
+    if photo:
+        return response("success", "Photo retrieved", photo)
+    return response("error", "Photo not found", None, 404)
 
 
-@app.route('/api/gallery/<int:photo_id>', methods=['PUT'])
-def update_gallery_photo(photo_id):
-    """Update gallery photo caption"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        data = request.get_json()
-        caption = data.get('caption', '').strip()
-        
-        cursor = connection.cursor()
-        cursor.execute(
-            "UPDATE gallery_photos SET caption=%s WHERE id=%s",
-            (caption, photo_id)
-        )
-        connection.commit()
-        
-        if cursor.rowcount == 0:
-            return response('error', 'Photo not found', None, 404)
-        
-        cursor.close()
-        connection.close()
-        return response('success', 'Photo updated successfully')
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/gallery/<int:photo_id>", methods=["PUT"])
+@admin_required
+@with_db
+def update_gallery_photo(connection, photo_id):
+    data = request.get_json(silent=True) or {}
+    caption = data.get("caption", "").strip()
+    cursor = connection.cursor()
+    cursor.execute("UPDATE gallery_photos SET caption=%s WHERE id=%s", (caption, photo_id))
+    if cursor.rowcount == 0:
+        return response("error", "Photo not found", None, 404)
+    return response("success", "Photo updated successfully")
 
 
-@app.route('/api/gallery/<int:photo_id>', methods=['DELETE'])
-def delete_gallery_photo(photo_id):
-    """Delete a gallery photo"""
-    connection = get_db_connection()
-    if not connection:
-        return response('error', 'Database connection failed', None, 500)
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        
-        # Get photo to delete image file
-        cursor.execute("SELECT image_url FROM gallery_photos WHERE id=%s", (photo_id,))
-        photo = cursor.fetchone()
-        
-        if not photo:
-            return response('error', 'Photo not found', None, 404)
-        
-        # Delete from database
-        cursor.execute("DELETE FROM gallery_photos WHERE id=%s", (photo_id,))
-        connection.commit()
-        cursor.close()
-        connection.close()
-        
-        # Delete image file
-        if photo.get('image_url'):
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], photo['image_url'])
-            if os.path.exists(file_path):
-                os.remove(file_path)
-        
-        return response('success', 'Photo deleted successfully')
-    
-    except Error as e:
-        connection.rollback()
-        return response('error', f'Database error: {str(e)}', None, 500)
-    finally:
-        if connection.is_connected():
-            connection.close()
+@app.route("/api/gallery/<int:photo_id>", methods=["DELETE"])
+@admin_required
+@with_db
+def delete_gallery_photo(connection, photo_id):
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM gallery_photos WHERE id=%s", (photo_id,))
+    if cursor.rowcount == 0:
+        return response("error", "Photo not found", None, 404)
+    return response("success", "Photo deleted successfully")
 
 
-# ============================================================================
-# UTILITY ROUTES
-# ============================================================================
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    """Validate a submitted admin token before the frontend unlocks controls."""
+    data = request.get_json(silent=True) or {}
+    provided = (data.get("token") or "").strip()
+    if ADMIN_TOKEN and provided == ADMIN_TOKEN:
+        return response("success", "Authenticated")
+    return response("error", "Invalid admin token", None, 401)
 
-@app.route('/uploads/<filename>')
-def serve_upload(filename):
-    """Serve uploaded files"""
-    return app.send_from_directory(app.config['UPLOAD_FOLDER'], secure_filename(filename))
 
-
-@app.route('/api/health', methods=['GET'])
+@app.route("/api/health", methods=["GET"])
 def health_check():
-    """Health check endpoint"""
     connection = get_db_connection()
     if connection:
         connection.close()
-        return response('success', 'Server and database are healthy')
-    else:
-        return response('error', 'Database connection failed', None, 500)
+        return response("success", "Server and database are healthy")
+    return response("error", "Database connection failed", None, 500)
 
 
 @app.errorhandler(404)
 def not_found(error):
-    """Handle 404 errors"""
-    return response('error', 'Endpoint not found', None, 404)
+    return response("error", "Endpoint not found", None, 404)
 
 
 @app.errorhandler(500)
 def internal_error(error):
-    """Handle 500 errors"""
-    return response('error', 'Internal server error', None, 500)
+    return response("error", "Internal server error", None, 500)
 
 
-if __name__ == '__main__':
-    # Run Flask app
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=False)

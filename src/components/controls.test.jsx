@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 
 test('profile edit button opens and cancel button closes the profile form', async () => {
-  render(<Profile />);
+  render(<Profile isAdmin />);
   const editButton = await screen.findByRole('button', { name: /edit profile/i });
 
   fireEvent.click(editButton);
@@ -34,7 +34,7 @@ test('profile edit button opens and cancel button closes the profile form', asyn
 });
 
 test('CV filters and add/cancel buttons change the interface', async () => {
-  render(<CV />);
+  render(<CV isAdmin />);
   await waitFor(() => expect(api.get).toHaveBeenCalledWith('/cv-entries'));
 
   fireEvent.click(screen.getByRole('button', { name: /experience/i }));
@@ -51,7 +51,7 @@ test.each([
   ['certificate upload', Certificates, 'Upload Certificate'],
   ['gallery upload', Gallery, 'Upload Photo'],
 ])('%s button opens a form and its cancel button closes it', async (_name, Component, submitLabel) => {
-  render(<Component />);
+  render(<Component isAdmin />);
   const uploadButton = await screen.findByRole('button', { name: /^\+ upload/i });
 
   fireEvent.click(uploadButton);

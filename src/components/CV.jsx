@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import { toast } from "react-toastify";
+import api, { getRequestError } from "../api";
 import LoadingSpinner from "./LoadingSpinner";
+import Modal from "./Modal";
+import ConfirmDialog from "./ConfirmDialog";
 import "../styles/CV.css";
 
-const CV = () => {
+const CV = ({ isAdmin }) => {
   const [entries, setEntries] = useState([]);
   const [filter, setFilter] = useState("all");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [confirmId, setConfirmId] = useState(null);
   const [formData, setFormData] = useState({
     section_type: "education",
     title: "",
@@ -52,9 +56,11 @@ const CV = () => {
           `/cv-entries/${editingId}`,
           formData,
         );
+        toast.success("CV entry updated successfully!");
         setEditingId(null);
       } else {
         await api.post("/cv-entries", formData);
+        toast.success("CV entry added successfully!");
       }
       setFormData({
         section_type: "education",
@@ -65,8 +71,8 @@ const CV = () => {
       });
       setIsAdding(false);
       await fetchEntries();
-    } catch (_err) {
-      // A spinner is shown while the request is pending instead of an error banner.
+    } catch (err) {
+      toast.error(getRequestError(err, editingId ? "Failed to update CV entry" : "Failed to add CV entry"));
     } finally {
       setIsWorking(false);
     }
@@ -78,17 +84,17 @@ const CV = () => {
     setIsAdding(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this entry?")) {
-      try {
-        setIsWorking(true);
-        await api.delete(`/cv-entries/${id}`);
-        await fetchEntries();
-      } catch (_err) {
-        // Keep the current list when deletion cannot be completed.
-      } finally {
-        setIsWorking(false);
-      }
+  const deleteEntry = async () => {
+    setIsWorking(true);
+    try {
+      await api.delete(`/cv-entries/${confirmId}`);
+      toast.success("CV entry deleted successfully!");
+      await fetchEntries();
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to delete CV entry"));
+    } finally {
+      setIsWorking(false);
+      setConfirmId(null);
     }
   };
 
@@ -135,13 +141,14 @@ const CV = () => {
           </button>
         </div>
 
-        <button onClick={() => setIsAdding(true)} className="add-btn" disabled={isWorking}>
+        {isAdmin && <button onClick={() => setIsAdding(true)} className="add-btn" disabled={isWorking}>
           + Add Entry
-        </button>
+        </button>}
 
         {isWorking && !isAdding && <LoadingSpinner label="Updating CV..." />}
 
         {isAdding && (
+          <Modal title={editingId ? "Edit CV entry" : "Add CV entry"} onClose={() => setIsAdding(false)}>
           <form onSubmit={handleSubmit} className="cv-form">
             <div className="form-group">
               <label>Type</label>
@@ -226,11 +233,12 @@ const CV = () => {
               </button>
             </div>
           </form>
+          </Modal>
         )}
 
         {loading ? <LoadingSpinner label="Loading CV entries..." /> : <div className="cv-entries">
           {filteredEntries.length === 0 ? (
-            <p className="no-entries">No entries yet. Add your first one!</p>
+            <div className="empty-state"><span>✦</span><p>No CV entries added yet.</p></div>
           ) : (
             filteredEntries.map((entry) => (
               <div key={entry.id} className="cv-entry">
@@ -238,7 +246,7 @@ const CV = () => {
                   <span className="entry-type">
                     {sections[entry.section_type]}
                   </span>
-                  <div className="entry-actions">
+                  {isAdmin && <div className="entry-actions">
                     <button
                       onClick={() => handleEdit(entry)}
                       className="edit-btn-small"
@@ -246,12 +254,12 @@ const CV = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(entry.id)}
+                      onClick={() => setConfirmId(entry.id)}
                       className="delete-btn-small"
                     >
                       Delete
                     </button>
-                  </div>
+                  </div>}
                 </div>
                 <h3>{entry.title}</h3>
                 {entry.organization && (
@@ -265,6 +273,17 @@ const CV = () => {
             ))
           )}
         </div>}
+
+        {confirmId !== null && (
+          <ConfirmDialog
+            title="Delete CV entry"
+            message="This entry will be permanently removed from your CV. Continue?"
+            confirmLabel="Delete entry"
+            busy={isWorking}
+            onCancel={() => setConfirmId(null)}
+            onConfirm={deleteEntry}
+          />
+        )}
       </div>
     </section>
   );

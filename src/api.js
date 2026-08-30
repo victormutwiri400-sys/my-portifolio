@@ -19,6 +19,12 @@ const api = axios.create({
   timeout: 20000,
 });
 
+api.interceptors.request.use((config) => {
+  const token = window.sessionStorage.getItem("portfolio_admin_token");
+  if (token) config.headers.set("X-Admin-Token", token);
+  return config;
+});
+
 export const assetUrl = (path) => {
   if (!path || typeof path !== "string") return "";
   return /^https?:\/\//i.test(path) ? path : `${apiOrigin}${path.startsWith("/") ? path : `/${path}`}`;

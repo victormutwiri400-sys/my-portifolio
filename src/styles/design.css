@@ -1,0 +1,56 @@
+:root { --brand:#4f46e5; --brand-dark:#3730a3; --ink:#172033; --muted:#667085; --surface:#f8fafc; --surface-muted:#eef2ff; --border:#e2e8f0; --radius:12px; --radius-lg:18px; --shadow:0 8px 22px rgba(15,23,42,.08); --shadow-lg:0 22px 54px rgba(15,23,42,.18); }
+body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: var(--surface); color: var(--ink); }
+button, input, textarea, select { font: inherit; }
+button:disabled { opacity: .58; cursor: not-allowed; transform: none !important; }
+input, textarea, select { border: 1px solid var(--border) !important; border-radius: 9px !important; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Typography: strong contrast between headings (700/800) and body (400/500). */
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
+body, p, span, li { font-weight: 400; }
+.profile-view h1 { font-weight: 800; }
+.cv-container h2, .certificates-container h2, .gallery-container h2 { font-weight: 700; }
+
+.primary-button, .submit-btn, .add-btn, .upload-btn { background: var(--brand) !important; color: #fff !important; border: 0 !important; border-radius: 9px !important; box-shadow: none !important; }
+.primary-button { width: 100%; padding: 12px 18px; font-weight: 700; cursor: pointer; }
+.primary-button .loading-spinner { min-height: 0; font-weight: 600; }
+.primary-button .spinner { width: 16px; height: 16px; border-width: 2px; border-color: #fff; border-right-color: transparent; }
+.empty-state { display: grid; place-items: center; gap: 8px; min-height: 220px; padding: 30px; border: 1px dashed #c7d2fe; border-radius: var(--radius-lg); background: rgba(255,255,255,.8); color: var(--muted); text-align: center; }
+.empty-state span { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--brand); font-size: 1.25rem; }
+.empty-state p { margin: 0; font-weight: 600; }
+
+/* Confirm dialog */
+.confirm-message { margin: 0 0 8px; color: var(--muted); line-height: 1.6; }
+.confirm-btn { flex: 1; padding: 12px; border: 0; border-radius: 9px; background: #dc2626; color: #fff; font-weight: 700; cursor: pointer; transition: background .2s ease, transform .2s ease; }
+.confirm-btn:hover:not(:disabled) { background: #b91c1c; transform: translateY(-1px); }
+
+/* Footer admin link */
+.footer .admin-link { color: rgba(255,255,255,.55); text-decoration: none; font-size: .85rem; margin-left: 12px; transition: color .2s ease; }
+.footer .admin-link:hover { color: #fff; }
+
+/* Shared page rhythm and card treatment. */
+.profile-section, .cv-section, .certificates-section, .gallery-section { min-height: calc(100vh - 128px); padding: 56px 20px; background: var(--surface) !important; color: var(--ink); }
+.profile-container, .cv-container, .certificates-container, .gallery-container { max-width: 1120px; margin: 0 auto; }
+.profile-container, .cv-container { max-width: 900px; }
+.profile-view, .cv-entry, .certificate-card, .gallery-item { border: 1px solid var(--border); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow); }
+.profile-view { padding: 48px 28px; }
+.profile-view h1, .profile-title, .cv-container h2, .certificates-container h2, .gallery-container h2 { color: var(--ink) !important; text-shadow: none; }
+.profile-bio, .organization, .description, .issuer, .caption { color: var(--muted) !important; }
+.profile-image { width: 160px; height: 160px; border-color: var(--surface-muted); margin-bottom: 12px; }
+.cv-container h2, .certificates-container h2, .gallery-container h2 { font-size: clamp(1.75rem, 4vw, 2.25rem); margin-bottom: 28px; }
+.cv-filters { justify-content: center; margin-bottom: 20px; }
+.cv-filters button { border-radius: 999px; }
+.cv-filters button.active { background: var(--brand); border-color: var(--brand); }
+.cv-entry { padding: 24px; border-left: 1px solid var(--border); }
+.entry-type { background: var(--surface-muted); color: var(--brand-dark); }
+.certificates-grid, .gallery-grid { padding: 0; }
+.certificate-card, .gallery-item { overflow: hidden; transition: transform .3s ease, box-shadow .3s ease; }
+.certificate-card:hover, .gallery-item:hover { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(15,23,42,.14); }
+.certificate-card:hover .cert-image, .gallery-item:hover .gallery-photo { transform: none; }
+.cert-image-container, .photo-wrapper { background: var(--surface-muted); }
+.pdf-preview { min-height: 100%; }
+.edit-btn, .delete-btn, .edit-btn-small, .delete-btn-small { box-shadow: none; }
+.delete-btn, .delete-btn-small { background: #dc2626; }
+.modal .profile-form, .modal .cv-form, .modal .certificates-form, .modal .gallery-form { max-width: none; margin: 0; padding: 0; background: transparent; box-shadow: none; }
+.loading-spinner { color: var(--brand); }
+@media (max-width: 640px) { .profile-section, .cv-section, .certificates-section, .gallery-section { padding: 32px 16px; } .profile-view { padding: 32px 20px; } .entry-header { align-items: flex-start; gap: 12px; flex-direction: column; } }

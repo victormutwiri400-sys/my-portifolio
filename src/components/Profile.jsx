@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import api, { assetUrl } from "../api";
+import { toast } from "react-toastify";
+import api, { assetUrl, getRequestError } from "../api";
 import LoadingSpinner from "./LoadingSpinner";
 import AssetPreview from "./AssetPreview";
+import Modal from "./Modal";
 import "../styles/Profile.css";
 
-const Profile = () => {
+const Profile = ({ isAdmin }) => {
   const [profile, setProfile] = useState({
     name: "",
     title: "",
@@ -67,12 +69,13 @@ const Profile = () => {
       );
 
       if (response.data.status === "success") {
+        toast.success("Profile saved successfully!");
         setSelectedFile(null);
         setIsEditing(false);
         await fetchProfile();
       }
-    } catch (_err) {
-      // The spinner replaces transient server error messages.
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to update profile"));
     } finally {
       setIsSaving(false);
     }
@@ -99,11 +102,12 @@ const Profile = () => {
               {profile.bio || "Add a bio about yourself"}
             </p>
             {isSaving && <LoadingSpinner label="Saving profile..." />}
-            <button onClick={() => setIsEditing(true)} className="edit-btn" disabled={isSaving}>
+            {isAdmin && <button onClick={() => setIsEditing(true)} className="edit-btn" disabled={isSaving}>
               Edit Profile
-            </button>
+            </button>}
           </div>
         ) : (
+          <Modal title="Edit profile" onClose={() => { setIsEditing(false); setSelectedFile(null); }}>
           <form onSubmit={handleSubmit} className="profile-form">
             <div className="form-group">
               <label>Name</label>
@@ -168,6 +172,7 @@ const Profile = () => {
               </button>
             </div>
           </form>
+          </Modal>
         )}
       </div>
     </section>

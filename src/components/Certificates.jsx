@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import api, { assetUrl } from "../api";
+import { toast } from "react-toastify";
+import api, { assetUrl, getRequestError } from "../api";
 import LoadingSpinner from "./LoadingSpinner";
 import AssetPreview from "./AssetPreview";
+import Modal from "./Modal";
+import ConfirmDialog from "./ConfirmDialog";
 import "../styles/Certificates.css";
 
-const Certificates = () => {
+const Certificates = ({ isAdmin }) => {
   const [certificates, setCertificates] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmId, setConfirmId] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     issuer: "",
@@ -66,25 +70,26 @@ const Certificates = () => {
       setFormData({ title: "", issuer: "" });
       setSelectedFile(null);
       setIsUploading(false);
+      toast.success("Certificate uploaded successfully!");
       await fetchCertificates();
-    } catch (_err) {
-      // A spinner is shown while an upload is in progress.
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to upload certificate"));
     } finally {
       setIsWorking(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this certificate?")) {
-      try {
-        setIsWorking(true);
-        await api.delete(`/certificates/${id}`);
-        await fetchCertificates();
-      } catch (_err) {
-        // Keep the current list when deletion cannot be completed.
-      } finally {
-        setIsWorking(false);
-      }
+  const deleteCertificate = async () => {
+    setIsWorking(true);
+    try {
+      await api.delete(`/certificates/${confirmId}`);
+      toast.success("Certificate deleted successfully!");
+      await fetchCertificates();
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to delete certificate"));
+    } finally {
+      setIsWorking(false);
+      setConfirmId(null);
     }
   };
 
@@ -93,13 +98,14 @@ const Certificates = () => {
       <div className="certificates-container">
         <h2>Certificates & Achievements</h2>
 
-        <button onClick={() => setIsUploading(true)} className="upload-btn" disabled={isWorking}>
+        {isAdmin && <button onClick={() => setIsUploading(true)} className="upload-btn" disabled={isWorking}>
           + Upload Certificate
-        </button>
+        </button>}
 
         {isWorking && !isUploading && <LoadingSpinner label="Updating certificates..." />}
 
         {isUploading && (
+          <Modal title="Upload certificate" onClose={() => setIsUploading(false)}>
           <form onSubmit={handleSubmit} className="certificates-form">
             <div className="form-group">
               <label>Certificate Title *</label>
@@ -153,13 +159,12 @@ const Certificates = () => {
               </button>
             </div>
           </form>
+          </Modal>
         )}
 
         {loading ? <LoadingSpinner label="Loading certificates..." /> : <div className="certificates-grid">
           {certificates.length === 0 ? (
-            <p className="no-certificates">
-              No certificates yet. Upload your first one!
-            </p>
+            <div className="empty-state"><span>⌑</span><p>No certificates added yet. {isAdmin && "Click above to upload!"}</p></div>
           ) : (
             certificates.map((cert) => (
               <div key={cert.id} className="certificate-card">
@@ -174,17 +179,28 @@ const Certificates = () => {
                 <div className="cert-info">
                   <h3>{cert.title}</h3>
                   {cert.issuer && <p className="issuer">{cert.issuer}</p>}
-                  <button
-                    onClick={() => handleDelete(cert.id)}
+                  {isAdmin && <button
+                    onClick={() => setConfirmId(cert.id)}
                     className="delete-btn"
                   >
                     Delete
-                  </button>
+                  </button>}
                 </div>
               </div>
             ))
           )}
         </div>}
+
+        {confirmId !== null && (
+          <ConfirmDialog
+            title="Delete certificate"
+            message="This certificate will be permanently removed. Continue?"
+            confirmLabel="Delete certificate"
+            busy={isWorking}
+            onCancel={() => setConfirmId(null)}
+            onConfirm={deleteCertificate}
+          />
+        )}
       </div>
     </section>
   );

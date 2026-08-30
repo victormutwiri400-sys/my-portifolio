@@ -63,7 +63,7 @@ Werkzeug==2.3.7           # WSGI utilities for file handling
 
 ### Environment Variables (.env)
 
-```
+``` 
 # Database
 DB_HOST=localhost
 DB_USER=root
@@ -77,7 +77,28 @@ FLASK_DEBUG=True
 # File Upload (optional)
 MAX_UPLOAD_SIZE=50
 ALLOWED_EXTENSIONS=png,jpg,jpeg,gif,webp
+
+# Admin security - required for every write request (POST/PUT/DELETE).
+ADMIN_TOKEN=change-me-to-a-long-random-secret
+
+# Cloudinary image storage (uploads are served from here in production).
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 ```
+
+### 🔐 Admin Security
+
+All mutating endpoints (`POST`, `PUT`, `DELETE`) require the `X-Admin-Token`
+header to match `ADMIN_TOKEN`. Requests without it receive `401 Unauthorized`,
+so the data cannot be changed by direct API calls even though the public site
+hides the management buttons.
+
+- Generate a secret: `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+- Set it in `.env` (`ADMIN_TOKEN=...`) and on your hosting platform.
+- The frontend sends it automatically after you sign in at `/admin`.
+- The frontend verifies a token before unlocking by calling
+  `POST /api/admin/login` with `{ "token": "..." }`.
 
 ### Port Configuration
 
@@ -103,42 +124,43 @@ All endpoints are under `/api` prefix.
 ### Profile Management
 
 ```
-GET    /api/profile           # Get user profile
-POST   /api/profile           # Create/update profile
+GET    /api/profile           # Get user profile (public)
+POST   /api/profile           # Create/update profile (admin token required)
 ```
 
 ### CV Entries
 
 ```
-GET    /api/cv-entries                    # Get all entries
-GET    /api/cv-entries?section_type=education  # Filter
-POST   /api/cv-entries                    # Create entry
-PUT    /api/cv-entries/<id>               # Update entry
-DELETE /api/cv-entries/<id>               # Delete entry
+GET    /api/cv-entries                    # Get all entries (public)
+GET    /api/cv-entries?section_type=education  # Filter (public)
+POST   /api/cv-entries                    # Create entry (admin token required)
+PUT    /api/cv-entries/<id>               # Update entry (admin token required)
+DELETE /api/cv-entries/<id>               # Delete entry (admin token required)
 ```
 
 ### Certificates
 
 ```
-GET    /api/certificates      # Get all certificates
-POST   /api/certificates      # Upload certificate
-DELETE /api/certificates/<id> # Delete certificate
+GET    /api/certificates      # Get all certificates (public)
+POST   /api/certificates      # Upload certificate (admin token required)
+DELETE /api/certificates/<id> # Delete certificate (admin token required)
 ```
 
 ### Gallery
 
 ```
-GET    /api/gallery           # Get all photos
-POST   /api/gallery           # Upload photo
-PUT    /api/gallery/<id>      # Update caption
-DELETE /api/gallery/<id>      # Delete photo
+GET    /api/gallery           # Get all photos (public)
+POST   /api/gallery           # Upload photo (admin token required)
+PUT    /api/gallery/<id>      # Update caption (admin token required)
+DELETE /api/gallery/<id>      # Delete photo (admin token required)
 ```
 
 ### Utilities
 
 ```
-GET    /api/health            # Health check
-GET    /uploads/<filename>    # Serve uploaded files
+GET    /api/health            # Health check (public)
+POST   /api/admin/login       # Validate admin token (public)
+GET    /uploads/<filename>    # Serve uploaded files (public)
 ```
 
 All endpoints return a standardized JSON response (`{ status, message, data? }`).

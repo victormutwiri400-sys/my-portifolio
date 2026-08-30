@@ -399,6 +399,13 @@ FLASK_DEBUG   - True/False
 - ✅ Update dependencies regularly
 - ✅ Enable database backups
 - ✅ Use environment-specific configs
+- ✅ **Protect management actions:** the public site hides edit/delete buttons,
+  and every `POST`/`PUT`/`DELETE` backend endpoint requires the `X-Admin-Token`
+  header. Sign in at `/admin` with the token configured via `ADMIN_TOKEN` in
+  your backend `.env` (see [src/backend/README.md](./src/backend/README.md)).
+- ✅ **Store uploads in the cloud:** images go through Cloudinary
+  (`CLOUDINARY_*` vars), so they survive redeploys on read-only hosting like
+  Vercel or Render.
 
 ## 📞 Support
 
