@@ -7,7 +7,7 @@ import axios from "axios";
 // The default is the deployed Flask API. Keep the protocol so Axios treats it
 // as an external API origin rather than a relative route on the frontend host.
 const configuredOrigin =
-  process.env.REACT_APP_API_URL || "portfolio-git-main-designer9.vercel.app";
+  process.env.REACT_APP_API_URL || "portfolio-lac-six-2poafbd79z.vercel.app";
 
 const withProtocol = (origin) =>
   /^https?:\/\//i.test(origin) ? origin : `https://${origin}`;
