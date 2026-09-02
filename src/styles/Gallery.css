@@ -80,15 +80,17 @@
 
 .gallery-item {
   background: white;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+  border: 2px solid #ffe9f7;
 }
 
 .gallery-item:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px);
+  border-color: #f953c6;
+  box-shadow: 0 20px 40px rgba(249, 83, 198, 0.2), 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .photo-wrapper {

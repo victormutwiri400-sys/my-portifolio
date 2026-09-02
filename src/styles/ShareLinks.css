@@ -1,0 +1,160 @@
+/* ================= Share Links (admin management) ================= */
+.share-links-section { min-height: calc(100vh - 128px); padding: 56px 20px; background: transparent !important; color: var(--ink); }
+.share-links-container { max-width: 1120px; margin: 0 auto; }
+.share-links-container h2 { font-size: clamp(1.75rem, 4vw, 2.25rem); margin-bottom: 8px; color: var(--ink); }
+.section-hint { margin-bottom: 24px; color: var(--muted); line-height: 1.6; }
+.field-hint { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+
+/* Give the section's action buttons the same vivid gradient treatment the
+   other admin sections get (design.css scopes those to profile/cv/etc.). */
+.share-links-section .upload-btn,
+.share-links-section .submit-btn { background-image: linear-gradient(120deg, #8e2de2 0%, #e100ff 50%, #ff9a44 100%) !important; }
+.share-links-section .upload-btn:hover:not(:disabled),
+.share-links-section .submit-btn:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(225, 0, 255, .45) !important; }
+
+.share-link-list { display: grid; gap: 14px; margin-top: 24px; }
+.share-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "url status actions" "meta status actions";
+  gap: 10px 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow);
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.share-link-row:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15,23,42,.1); }
+.share-link-row.status-active { border-left-color: #067647; }
+.share-link-row.status-expired { border-left-color: #b54708; }
+.share-link-row.status-disabled { border-left-color: #98a2b3; }
+
+.share-link-url { grid-area: url; min-width: 0; }
+.share-link-url a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--brand);
+  font-weight: 650;
+  text-decoration: none;
+}
+.share-link-url a:hover { text-decoration: underline; }
+.share-link-meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--muted); font-size: .88rem; }
+
+.status-badge {
+  grid-area: status;
+  justify-self: end;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.badge-active { background: #dcfce7; color: #067647; }
+.badge-expired { background: #fff4e6; color: #b54708; }
+.badge-disabled { background: #f2f4f7; color: #667085; }
+
+.share-link-actions { grid-area: actions; display: flex; gap: 10px; justify-content: flex-end; }
+.share-link-actions .view-btn,
+.share-link-actions .delete-btn { padding: 9px 14px; font-size: .88rem; }
+
+.created-link-box {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 12px 0 20px;
+  padding: 14px 16px;
+  border: 1px dashed #a5b4fc;
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+.created-link-box span {
+  flex: 1 1 220px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-weight: 600;
+  word-break: break-all;
+}
+.created-hint { margin: 0 0 12px; color: var(--muted); line-height: 1.6; }
+.share-link-form .form-group { margin-bottom: 16px; }
+
+/* ================= Public /share/:token page ================= */
+.share-state-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at top left, #e0e7ff, #f8fafc 48%);
+}
+.share-error-card {
+  width: min(100%, 460px);
+  padding: 36px;
+  text-align: center;
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #7f00ff, #e100ff, #ff9a44, #38ef7d, #36d1dc, #8e2de2) border-box;
+  box-shadow: var(--shadow-lg);
+}
+.share-error-card h1 { margin: 6px 0 12px; color: var(--ink); }
+.share-error-card p { color: var(--muted); line-height: 1.6; }
+.share-error-card .primary-button { width: auto; margin-top: 8px; }
+.share-state-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; }
+
+.share-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.share-header { background: rgba(16, 32, 43, 0.97); }
+.share-header-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.share-header-inner .eyebrow { margin: 0; }
+
+.share-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 24px 16px 0;
+}
+/* nav-btn is styled for the dark navbar (white text on transparent) — on the
+   light shared page that would make the tabs invisible, so override them. */
+.share-tabs .nav-btn {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+}
+.share-tabs .nav-btn:hover { background: var(--surface-muted); color: var(--brand); box-shadow: none; }
+.share-tabs .nav-btn.active {
+  background-image: linear-gradient(120deg, #36d1dc, #5b86e5);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(91, 134, 229, .35);
+}
+.share-footer { margin-top: auto; }
+
+@media (max-width: 768px) {
+  .share-link-row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "status" "url" "meta" "actions";
+  }
+  .status-badge { justify-self: start; }
+  .share-link-actions { justify-content: flex-start; }
+  .share-links-section { padding: 32px 16px; }
+  .share-link-url a { white-space: normal; overflow-wrap: anywhere; }
+}

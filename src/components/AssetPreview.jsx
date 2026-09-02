@@ -1,6 +1,6 @@
 import "../styles/AssetPreview.css";
 
-const isPdf = (url) => /\.pdf(?:$|[?#])/i.test(url || "");
+export const isPdf = (url) => /\.pdf(?:$|[?#])/i.test(url || "");
 
 const AssetPreview = ({ src, alt, className, pdfLabel = "Open PDF" }) => {
   if (isPdf(src)) {

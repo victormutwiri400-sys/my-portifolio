@@ -2,4 +2,5 @@
 .modal { width: min(100%, 580px); max-height: calc(100vh - 40px); overflow: auto; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-lg); }
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .modal-header h2 { margin: 0; font-size: 1.25rem; color: var(--ink); }
-.icon-button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--surface-muted); color: var(--muted); font-size: 1.6rem; line-height: 1; cursor: pointer; }
+.icon-button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--surface-muted); color: var(--muted); font-size: 1.6rem; line-height: 1; cursor: pointer; transition: background .25s ease, color .25s ease, transform .25s ease; }
+.icon-button:hover { background: linear-gradient(120deg, #8e2de2, #e100ff); color: #fff; transform: rotate(90deg); }

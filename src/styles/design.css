@@ -3,7 +3,7 @@ body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: var
 button, input, textarea, select { font: inherit; }
 button:disabled { opacity: .58; cursor: not-allowed; transform: none !important; }
 input, textarea, select { border: 1px solid var(--border) !important; border-radius: 9px !important; }
-:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+:focus-visible { outline: 2px solid #8e2de2; outline-offset: 2px; }
 
 /* Typography: strong contrast between headings (700/800) and body (400/500). */
 h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
@@ -11,46 +11,96 @@ body, p, span, li { font-weight: 400; }
 .profile-view h1 { font-weight: 800; }
 .cv-container h2, .certificates-container h2, .gallery-container h2 { font-weight: 700; }
 
-.primary-button, .submit-btn, .add-btn, .upload-btn { background: var(--brand) !important; color: #fff !important; border: 0 !important; border-radius: 9px !important; box-shadow: none !important; }
-.primary-button { width: 100%; padding: 12px 18px; font-weight: 700; cursor: pointer; }
+/* ================= Rainbow button system =================
+   Every action gets its own vivid gradient. Hovering animates the
+   gradient to a shifted hue and casts a glow in its accent color. */
+.primary-button, .submit-btn, .add-btn, .upload-btn, .edit-btn, .edit-btn-small, .delete-btn, .delete-btn-small, .confirm-btn, .view-btn {
+  position: relative;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  font-weight: 700;
+  cursor: pointer;
+  background-size: 220% 220% !important;
+  background-position: 0% 50% !important;
+  transition: background-position .45s ease, transform .3s ease, box-shadow .3s ease !important;
+}
+.primary-button, .submit-btn, .add-btn, .upload-btn { box-shadow: 0 6px 16px rgba(15,23,42,.18) !important; }
+.primary-button:hover:not(:disabled), .submit-btn:hover:not(:disabled), .add-btn:hover:not(:disabled), .upload-btn:hover:not(:disabled), .edit-btn:hover:not(:disabled), .edit-btn-small:hover:not(:disabled), .delete-btn:hover:not(:disabled), .delete-btn-small:hover:not(:disabled), .confirm-btn:hover:not(:disabled), .view-btn:hover:not(:disabled) {
+  background-position: 100% 50% !important;
+  transform: translateY(-2px);
+}
+/* Admin login — violet → magenta → red */
+.primary-button { width: 100%; padding: 12px 18px; background-image: linear-gradient(120deg, #8e2de2 0%, #e100ff 50%, #ff0844 100%) !important; }
+.primary-button:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(225,0,255,.45) !important; }
 .primary-button .loading-spinner { min-height: 0; font-weight: 600; }
 .primary-button .spinner { width: 16px; height: 16px; border-width: 2px; border-color: #fff; border-right-color: transparent; }
+/* Profile save — sky → indigo → violet */
+.profile-section .submit-btn { background-image: linear-gradient(120deg, #4facfe 0%, #5b86e5 50%, #8e2de2 100%) !important; }
+.profile-section .submit-btn:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(142,45,226,.4) !important; }
+/* CV — teal → emerald */
+.cv-section .submit-btn, .cv-section .add-btn { background-image: linear-gradient(120deg, #11998e 0%, #38ef7d 55%, #11998e 100%) !important; }
+.cv-section .submit-btn:hover:not(:disabled), .cv-section .add-btn:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(24,205,124,.42) !important; }
+/* Certificates — orange → coral → magenta */
+.certificates-section .submit-btn, .certificates-section .upload-btn { background-image: linear-gradient(120deg, #ff9a44 0%, #fc6076 55%, #ff9a44 100%) !important; }
+.certificates-section .submit-btn:hover:not(:disabled), .certificates-section .upload-btn:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(252,96,118,.42) !important; }
+/* Gallery — magenta → orchid → violet */
+.gallery-section .submit-btn, .gallery-section .upload-btn { background-image: linear-gradient(120deg, #f953c6 0%, #b91d73 55%, #f953c6 100%) !important; }
+.gallery-section .submit-btn:hover:not(:disabled), .gallery-section .upload-btn:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(249,83,198,.45) !important; }
+/* Edit — amber → coral (dark text keeps contrast on light amber) */
+.edit-btn, .edit-btn-small { background-image: linear-gradient(120deg, #f6d365 0%, #fda085 50%, #f6d365 100%) !important; color: #4a2c0d !important; }
+.edit-btn:hover:not(:disabled), .edit-btn-small:hover:not(:disabled) { box-shadow: 0 8px 18px rgba(253,160,133,.5) !important; }
+/* Delete / confirm — fiery red → crimson */
+.delete-btn, .delete-btn-small, .confirm-btn { background-image: linear-gradient(120deg, #ff4b2b 0%, #ff416c 55%, #ff4b2b 100%) !important; }
+.delete-btn:hover:not(:disabled), .delete-btn-small:hover:not(:disabled), .confirm-btn:hover:not(:disabled) { box-shadow: 0 8px 18px rgba(255,65,108,.45) !important; }
+.confirm-btn { flex: 1; padding: 12px; }
+/* Cancel — neutral card that blooms indigo on hover */
+.cancel-btn { background: #fff !important; color: #5b6472 !important; border: 1.5px solid #cbd5e1 !important; font-weight: 650; transition: background .3s ease, border-color .3s ease, color .3s ease, transform .3s ease !important; }
+.cancel-btn:hover:not(:disabled) { border-color: #a5b4fc !important; background: #eef2ff !important; color: #5b86e5 !important; transform: translateY(-2px); }
+
+/* View Full Image — sky → indigo → violet (shares the animated gradient system) */
+.view-btn { background-image: linear-gradient(120deg, #4facfe 0%, #5b86e5 50%, #8e2de2 100%) !important; padding: 10px 16px; font-size: .9rem; }
+.view-btn:hover:not(:disabled) { box-shadow: 0 8px 18px rgba(91, 134, 229, 0.5) !important; }
+.view-btn span { font-size: 1.15em; line-height: 1; }
+
+/* Shared actions row for certificate / gallery cards */
+.info-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; }
+.info-actions .view-btn,
+.info-actions .delete-btn { flex: 1 1 auto; }
+.info-actions .delete-btn { width: auto; margin: 0; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15) !important; }
+
 .empty-state { display: grid; place-items: center; gap: 8px; min-height: 220px; padding: 30px; border: 1px dashed #c7d2fe; border-radius: var(--radius-lg); background: rgba(255,255,255,.8); color: var(--muted); text-align: center; }
-.empty-state span { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: var(--surface-muted); color: var(--brand); font-size: 1.25rem; }
+.empty-state span { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: linear-gradient(120deg, #e0e7ff, #fce7f6); color: #8e2de2; font-size: 1.25rem; }
 .empty-state p { margin: 0; font-weight: 600; }
 
 /* Confirm dialog */
 .confirm-message { margin: 0 0 8px; color: var(--muted); line-height: 1.6; }
-.confirm-btn { flex: 1; padding: 12px; border: 0; border-radius: 9px; background: #dc2626; color: #fff; font-weight: 700; cursor: pointer; transition: background .2s ease, transform .2s ease; }
-.confirm-btn:hover:not(:disabled) { background: #b91c1c; transform: translateY(-1px); }
 
 /* Footer admin link */
 .footer .admin-link { color: rgba(255,255,255,.55); text-decoration: none; font-size: .85rem; margin-left: 12px; transition: color .2s ease; }
 .footer .admin-link:hover { color: #fff; }
 
-/* Shared page rhythm and card treatment. */
-.profile-section, .cv-section, .certificates-section, .gallery-section { min-height: calc(100vh - 128px); padding: 56px 20px; background: var(--surface) !important; color: var(--ink); }
+/* Shared page rhythm and card treatment. Sections stay transparent so the
+   soft app-wide background gradient shows through behind the white cards. */
+.profile-section, .cv-section, .certificates-section, .gallery-section { min-height: calc(100vh - 128px); padding: 56px 20px; background: transparent !important; color: var(--ink); }
 .profile-container, .cv-container, .certificates-container, .gallery-container { max-width: 1120px; margin: 0 auto; }
 .profile-container, .cv-container { max-width: 900px; }
 .profile-view, .cv-entry, .certificate-card, .gallery-item { border: 1px solid var(--border); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow); }
-.profile-view { padding: 48px 28px; }
+.profile-view { padding: 48px 28px; transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease; }
+.profile-view:hover { transform: translateY(-3px); border-color: #a5b4fc; box-shadow: 0 18px 36px rgba(91,134,229,.14), 0 6px 16px rgba(15,23,42,.06); }
 .profile-view h1, .profile-title, .cv-container h2, .certificates-container h2, .gallery-container h2 { color: var(--ink) !important; text-shadow: none; }
 .profile-bio, .organization, .description, .issuer, .caption { color: var(--muted) !important; }
 .profile-image { width: 160px; height: 160px; border-color: var(--surface-muted); margin-bottom: 12px; }
 .cv-container h2, .certificates-container h2, .gallery-container h2 { font-size: clamp(1.75rem, 4vw, 2.25rem); margin-bottom: 28px; }
 .cv-filters { justify-content: center; margin-bottom: 20px; }
 .cv-filters button { border-radius: 999px; }
-.cv-filters button.active { background: var(--brand); border-color: var(--brand); }
-.cv-entry { padding: 24px; border-left: 1px solid var(--border); }
-.entry-type { background: var(--surface-muted); color: var(--brand-dark); }
+.cv-entry { padding: 24px; border-left: 4px solid transparent; transition: transform .3s ease, box-shadow .3s ease, border-left-color .3s ease; }
+.cv-section .cv-entry:hover { transform: translateY(-4px); border-left-color: #11998e; box-shadow: 0 16px 30px rgba(17,153,142,.16), 0 4px 12px rgba(15,23,42,.06); }
 .certificates-grid, .gallery-grid { padding: 0; }
-.certificate-card, .gallery-item { overflow: hidden; transition: transform .3s ease, box-shadow .3s ease; }
-.certificate-card:hover, .gallery-item:hover { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(15,23,42,.14); }
-.certificate-card:hover .cert-image, .gallery-item:hover .gallery-photo { transform: none; }
+.certificate-card, .gallery-item { overflow: hidden; transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease; }
+.certificate-card:hover, .gallery-item:hover { transform: translateY(-6px); }
 .cert-image-container, .photo-wrapper { background: var(--surface-muted); }
 .pdf-preview { min-height: 100%; }
-.edit-btn, .delete-btn, .edit-btn-small, .delete-btn-small { box-shadow: none; }
-.delete-btn, .delete-btn-small { background: #dc2626; }
 .modal .profile-form, .modal .cv-form, .modal .certificates-form, .modal .gallery-form { max-width: none; margin: 0; padding: 0; background: transparent; box-shadow: none; }
-.loading-spinner { color: var(--brand); }
+.loading-spinner { color: #8e2de2; }
 @media (max-width: 640px) { .profile-section, .cv-section, .certificates-section, .gallery-section { padding: 32px 16px; } .profile-view { padding: 32px 20px; } .entry-header { align-items: flex-start; gap: 12px; flex-direction: column; } }

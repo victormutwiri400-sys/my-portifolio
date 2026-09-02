@@ -2,15 +2,17 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import api, { assetUrl, getRequestError } from "../api";
 import LoadingSpinner from "./LoadingSpinner";
-import AssetPreview from "./AssetPreview";
+import AssetPreview, { isPdf } from "./AssetPreview";
 import Modal from "./Modal";
 import ConfirmDialog from "./ConfirmDialog";
+import Lightbox from "./Lightbox";
 import "../styles/Gallery.css";
 
 const Gallery = ({ isAdmin }) => {
   const [photos, setPhotos] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
   const [caption, setCaption] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -149,12 +151,26 @@ const Gallery = ({ isAdmin }) => {
                 </div>
                 <div className="photo-info">
                   {photo.caption && <p className="caption">{photo.caption}</p>}
-                  {isAdmin && <button
-                    onClick={() => setConfirmId(photo.id)}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>}
+                  <div className="info-actions">
+                    {!isPdf(photo.image_url) && (
+                      <button
+                        className="view-btn"
+                        onClick={() =>
+                          setLightbox({ src: assetUrl(photo.image_url), title: photo.caption || "Gallery photo" })
+                        }
+                      >
+                        <span aria-hidden="true">⤢</span> View Full Image
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => setConfirmId(photo.id)}
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -169,6 +185,14 @@ const Gallery = ({ isAdmin }) => {
             busy={isWorking}
             onCancel={() => setConfirmId(null)}
             onConfirm={deletePhoto}
+          />
+        )}
+
+        {lightbox && (
+          <Lightbox
+            src={lightbox.src}
+            title={lightbox.title}
+            onClose={() => setLightbox(null)}
           />
         )}
       </div>

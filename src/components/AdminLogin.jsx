@@ -4,7 +4,14 @@ import api from "../api";
 import LoadingSpinner from "./LoadingSpinner";
 import "../styles/AdminLogin.css";
 
-const AdminLogin = ({ onLogin }) => {
+const AdminLogin = ({
+  onLogin,
+  eyebrow = "Portfolio administration",
+  title = "Admin access",
+  description = "Enter the admin password.",
+  labelText = "Admin token",
+  buttonLabel = "Unlock management",
+}) => {
   const [token, setToken] = useState("");
   const [checking, setChecking] = useState(false);
 
@@ -30,13 +37,13 @@ const AdminLogin = ({ onLogin }) => {
   return (
     <main className="admin-login-page">
       <form className="admin-login-card" onSubmit={submit}>
-        <p className="eyebrow">Portfolio administration</p>
-        <h1>Admin access</h1>
-        <p>Enter the admin token configured on your API server.</p>
-        <label htmlFor="admin-token">Admin token</label>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p>{description}</p>
+        <label htmlFor="admin-token">{labelText}</label>
         <input id="admin-token" type="password" value={token} onChange={(event) => setToken(event.target.value)} autoComplete="current-password" required disabled={checking} />
         <button className="primary-button" type="submit" disabled={checking}>
-          {checking ? <LoadingSpinner label="Verifying token..." /> : "Unlock management"}
+          {checking ? <LoadingSpinner label="Verifying token..." /> : buttonLabel}
         </button>
       </form>
     </main>

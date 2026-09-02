@@ -25,6 +25,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Public API instance with the SAME base URL but WITHOUT the admin-token
+ * interceptor. Used only by the public /share/:token route so the admin
+ * token is never sent by the shared portfolio page, even when the site
+ * owner is signed in on the same browser.
+ */
+export const publicApi = axios.create({
+  baseURL: `${apiOrigin}/api`,
+  timeout: 20000,
+});
+
 export const assetUrl = (path) => {
   if (!path || typeof path !== "string") return "";
   return /^https?:\/\//i.test(path) ? path : `${apiOrigin}${path.startsWith("/") ? path : `/${path}`}`;

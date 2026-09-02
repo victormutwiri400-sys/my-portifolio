@@ -2,15 +2,17 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import api, { assetUrl, getRequestError } from "../api";
 import LoadingSpinner from "./LoadingSpinner";
-import AssetPreview from "./AssetPreview";
+import AssetPreview, { isPdf } from "./AssetPreview";
 import Modal from "./Modal";
 import ConfirmDialog from "./ConfirmDialog";
+import Lightbox from "./Lightbox";
 import "../styles/Certificates.css";
 
 const Certificates = ({ isAdmin }) => {
   const [certificates, setCertificates] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     issuer: "",
@@ -179,12 +181,26 @@ const Certificates = ({ isAdmin }) => {
                 <div className="cert-info">
                   <h3>{cert.title}</h3>
                   {cert.issuer && <p className="issuer">{cert.issuer}</p>}
-                  {isAdmin && <button
-                    onClick={() => setConfirmId(cert.id)}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>}
+                  <div className="info-actions">
+                    {!isPdf(cert.image_url) && (
+                      <button
+                        className="view-btn"
+                        onClick={() =>
+                          setLightbox({ src: assetUrl(cert.image_url), title: cert.title })
+                        }
+                      >
+                        <span aria-hidden="true">⤢</span> View Full Image
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => setConfirmId(cert.id)}
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -199,6 +215,14 @@ const Certificates = ({ isAdmin }) => {
             busy={isWorking}
             onCancel={() => setConfirmId(null)}
             onConfirm={deleteCertificate}
+          />
+        )}
+
+        {lightbox && (
+          <Lightbox
+            src={lightbox.src}
+            title={lightbox.title}
+            onClose={() => setLightbox(null)}
           />
         )}
       </div>
