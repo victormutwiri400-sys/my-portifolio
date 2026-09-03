@@ -61,6 +61,7 @@ const ShareLinks = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isWorking, setIsWorking] = useState(false);
   const [confirmId, setConfirmId] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
   const [created, setCreated] = useState(null);
   const [expiryDate, setExpiryDate] = useState("");
   const [expiryTime, setExpiryTime] = useState("");
@@ -157,6 +158,20 @@ const ShareLinks = () => {
     }
   };
 
+  const deleteLink = async () => {
+    setIsWorking(true);
+    try {
+      await api.delete(`/share-links/${deleteId}/delete`);
+      toast.success("Share link deleted successfully!");
+      await fetchLinks();
+    } catch (err) {
+      toast.error(getRequestError(err, "Failed to delete share link"));
+    } finally {
+      setIsWorking(false);
+      setDeleteId(null);
+    }
+  };
+
   const closeCreate = () => {
     setShowCreate(false);
     setExpiryDate("");
@@ -227,6 +242,13 @@ const ShareLinks = () => {
                         Disable Link
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() => setDeleteId(link.id)}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))
@@ -328,6 +350,17 @@ const ShareLinks = () => {
             busy={isWorking}
             onCancel={() => setConfirmId(null)}
             onConfirm={disableLink}
+          />
+        )}
+
+        {deleteId !== null && (
+          <ConfirmDialog
+            title="Delete share link"
+            message="This share link will be permanently removed from your account. The URL will stop working immediately and cannot be restored. Continue?"
+            confirmLabel="Delete share link"
+            busy={isWorking}
+            onCancel={() => setDeleteId(null)}
+            onConfirm={deleteLink}
           />
         )}
       </div>

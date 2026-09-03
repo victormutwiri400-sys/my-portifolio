@@ -53,6 +53,8 @@ test("renders share links with statuses and actions", async () => {
   expect(screen.getByText("DISABLED")).toBeInTheDocument();
   // Disable action appears only for active links.
   expect(screen.getAllByRole("button", { name: /^disable link$/i })).toHaveLength(1);
+  // Delete (permanent) appears for every link.
+  expect(screen.getAllByRole("button", { name: /^delete$/i })).toHaveLength(3);
   // Copy buttons appear for every link.
   expect(screen.getAllByRole("button", { name: /^copy$/i })).toHaveLength(3);
 });
@@ -111,4 +113,16 @@ test("disables a share link after confirmation", async () => {
   fireEvent.click(screen.getByRole("button", { name: /^disable$/i }));
 
   await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/share-links/1"));
+});
+
+test("permanently deletes a share link after confirmation", async () => {
+  jest.spyOn(api, "get").mockResolvedValue({ data: { status: "success", data: [expiredLink] } });
+  jest.spyOn(api, "delete").mockResolvedValue({ data: { status: "success" } });
+
+  render(<ShareLinks />);
+
+  fireEvent.click(await screen.findByRole("button", { name: /^delete$/i }));
+  fireEvent.click(screen.getByRole("button", { name: /^delete share link$/i }));
+
+  await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/share-links/2/delete"));
 });

@@ -59,7 +59,7 @@
 .badge-expired { background: #fff4e6; color: #b54708; }
 .badge-disabled { background: #f2f4f7; color: #667085; }
 
-.share-link-actions { grid-area: actions; display: flex; gap: 10px; justify-content: flex-end; }
+.share-link-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .share-link-actions .view-btn,
 .share-link-actions .delete-btn { padding: 9px 14px; font-size: .88rem; }
 
