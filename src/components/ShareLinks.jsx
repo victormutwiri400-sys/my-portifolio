@@ -6,11 +6,13 @@ import Modal from "./Modal";
 import ConfirmDialog from "./ConfirmDialog";
 import "../styles/ShareLinks.css";
 
-const pad = (n) => String(n).padStart(2, "0");
-
 /**
- * Build the backend-expected `YYYY-MM-DDTHH:MM:SS` string from the separate
- * date and time inputs. Leaving the time empty defaults to end of day.
+ * Convert the admin's chosen local expiry into the UTC `YYYY-MM-DDTHH:MM:SS`
+ * string the backend accepts. The time is converted to UTC (so it means the
+ * same absolute instant the admin picked), but sent WITHOUT the "Z" suffix
+ * for compatibility with the currently deployed backend, which only accepts
+ * the plain `YYYY-MM-DDTHH:MM:SS` format. The server runs in UTC on Vercel,
+ * so the stored value is compared against UTC there.
  */
 const buildExpiresAt = (date, time) => {
   const [y, m, d] = date.split("-");
@@ -23,10 +25,32 @@ const buildExpiresAt = (date, time) => {
     mm = parts[1] || "00";
     ss = parts[2] || "00";
   }
-  return `${y}-${m}-${d}T${pad(Number(hh))}:${pad(Number(mm))}:${pad(Number(ss))}`;
+  const local = new Date(
+    Number(y),
+    Number(m) - 1,
+    Number(d),
+    Number(hh),
+    Number(mm),
+    Number(ss)
+  );
+  if (Number.isNaN(local.getTime())) return "";
+  // toISOString() returns "...T20:59:00.000Z"; slice keeps UTC YYYY-MM-DDTHH:MM:SS.
+  return local.toISOString().slice(0, 19);
 };
 
-const formatDate = (iso) => (iso ? iso.replace("T", " ") : "—");
+const formatDate = (iso) => {
+  if (!iso) return "—";
+  // Backend returns UTC with a Z marker; render in the admin's local zone.
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return iso.replace("T", " ");
+  return parsed.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const shareUrl = (sharePath) => `${window.location.origin}${sharePath}`;
 
@@ -93,7 +117,11 @@ const ShareLinks = () => {
       return;
     }
     const expires_at = buildExpiresAt(date, expiryTime);
-    const parsed = new Date(expires_at);
+    // buildExpiresAt returns UTC without a marker, so parse it as UTC ("Z")
+    // before comparing with the current moment. Parsing it as local time would
+    // compare the UTC wall-clock against local now, wrongly rejecting valid
+    // future expiries in time zones east of UTC.
+    const parsed = new Date(`${expires_at}Z`);
     if (Number.isNaN(parsed.getTime()) || parsed <= new Date()) {
       toast.error("Expiry must be in the future.");
       return;

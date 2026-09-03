@@ -65,7 +65,7 @@ test("creates a share link with a future expiry and shows the generated URL", as
       data: {
         id: 4,
         token: "tok-new",
-        expires_at: "2099-12-31T23:59:00",
+        expires_at: "2099-12-31T20:59:00Z",
         share_path: "/share/tok-new",
       },
     },
@@ -78,9 +78,12 @@ test("creates a share link with a future expiry and shows the generated URL", as
   fireEvent.change(screen.getByLabelText(/expiry time/i), { target: { value: "23:59" } });
   fireEvent.click(screen.getByRole("button", { name: /create link$/i }));
 
-  await waitFor(() =>
-    expect(api.post).toHaveBeenCalledWith("/share-links", { expires_at: "2099-12-31T23:59:00" })
-  );
+  await waitFor(() => expect(api.post).toHaveBeenCalledWith("/share-links", expect.any(Object)));
+  const sent = api.post.mock.calls[0][1].expires_at;
+  // Backend accepts plain YYYY-MM-DDTHH:MM:SS (UTC). No Z suffix is sent.
+  expect(sent).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+  expect(new Date(sent + "Z").getUTCFullYear()).toBe(2099);
+
   expect(await screen.findByText(/\/share\/tok-new/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /copy link$/i })).toBeInTheDocument();
 });
