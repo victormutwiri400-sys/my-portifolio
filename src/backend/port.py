@@ -158,8 +158,15 @@ def admin_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         provided = request.headers.get("X-Admin-Token", "")
+        # TEMPORARY DIAGNOSTIC — boolean only, no secret values. REMOVE AFTER VERIFICATION.
+        print(
+            f"[diag admin_required] X-Admin-Token present: {bool(provided)}, "
+            f"ADMIN_TOKEN configured: {bool(ADMIN_TOKEN)}, "
+            f"comparison succeeded: {provided == ADMIN_TOKEN}"
+        )
         if not ADMIN_TOKEN or provided != ADMIN_TOKEN:
             return response("error", "Unauthorized. A valid admin token is required.", None, 401)
+
         return f(*args, **kwargs)
 
     return wrapper
@@ -669,9 +676,24 @@ def admin_login():
     """Validate a submitted admin token before the frontend unlocks controls."""
     data = request.get_json(silent=True) or {}
     provided = (data.get("token") or "").strip()
+    # TEMPORARY DIAGNOSTIC — boolean only, no secret values. REMOVE AFTER VERIFICATION.
+    print(f"[diag admin_login] ADMIN_TOKEN configured: {bool(ADMIN_TOKEN)}")
     if ADMIN_TOKEN and provided == ADMIN_TOKEN:
         return response("success", "Authenticated")
+    # TEMPORARY DIAGNOSTIC — boolean only, no secret values. REMOVE AFTER VERIFICATION.
+    print(f"[diag admin_login] token comparison succeeded: {bool(ADMIN_TOKEN) and provided == ADMIN_TOKEN}")
     return response("error", "Invalid admin token", None, 401)
+
+
+# TEMPORARY DIAGNOSTIC — REMOVE AFTER PRODUCTION VERIFICATION.
+# Boolean-only status: never returns or logs secret values.
+@app.route("/api/__diag_admin_env", methods=["GET"])
+def __diag_admin_env():
+    return response(
+        "success",
+        "Admin environment diagnostic",
+        {"admin_token_configured": bool(ADMIN_TOKEN)},
+    )
 
 
 @app.route("/api/health", methods=["GET"])
