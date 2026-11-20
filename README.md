@@ -138,12 +138,25 @@ http://localhost:5000/api
 - `PUT /api/gallery/<id>` - Update photo caption
 - `DELETE /api/gallery/<id>` - Delete photo
 
+### Projects
+
+- `GET /api/projects` - List published projects
+- `POST /api/projects` - Create project (admin token required)
+- `PUT /api/projects/<id>` - Update project (admin token required)
+- `DELETE /api/projects/<id>` - Delete project (admin token required)
+
 ### Utilities
 
 - `GET /api/health` - Server health check
 - `GET /uploads/<filename>` - Serve uploaded files
 
 The backend implementation and response format are documented in [src/backend/README.md](./src/backend/README.md).
+
+Before deploying the Projects API, apply the additive migration
+`src/backend/migrations/001_create_portfolio_projects.sql` to the configured
+MySQL/MariaDB database. It creates only the `portfolio_projects` table and
+does not alter existing portfolio data. Keep `ADMIN_TOKEN` and Cloudinary
+credentials on the backend host; do not expose them in React code.
 
 ## 🔧 Configuration
 

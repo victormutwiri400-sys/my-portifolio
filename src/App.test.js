@@ -13,6 +13,7 @@ jest.mock('./components/Profile', () => () => <div>Profile content</div>);
 jest.mock('./components/CV', () => () => <div>CV content</div>);
 jest.mock('./components/Certificates', () => () => <div>Certificates content</div>);
 jest.mock('./components/Gallery', () => () => <div>Gallery content</div>);
+jest.mock('./components/Projects', () => () => <div>Projects content</div>);
 jest.mock('./components/SharePage', () => () => <div>Share page content</div>);
 jest.mock('./components/ShareLinks', () => () => <div>Share links content</div>);
 
@@ -46,10 +47,9 @@ test('renders the portfolio navigation for an authenticated session', () => {
 });
 
 test.each([
-  ['CV & Experience', /cv content/i],
-  ['Certificates', /certificates content/i],
-  ['Gallery', /gallery content/i],
-  ['Profile', /profile content/i],
+  ['Experience', /cv content/i],
+  ['Projects', /projects content/i],
+  ['About', /profile content/i],
 ])('shows the correct section when %s is selected', (buttonName, sectionText) => {
   authenticate();
   render(<App />);

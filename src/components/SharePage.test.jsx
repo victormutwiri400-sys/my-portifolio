@@ -9,6 +9,7 @@ jest.mock("./Profile", () => () => <div>Profile content</div>);
 jest.mock("./CV", () => () => <div>CV content</div>);
 jest.mock("./Certificates", () => () => <div>Certificates content</div>);
 jest.mock("./Gallery", () => () => <div>Gallery content</div>);
+jest.mock("./Projects", () => () => <div>Projects content</div>);
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -29,6 +30,7 @@ test("validates a token and renders the public portfolio", async () => {
 
   expect(await screen.findByText("Profile content")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: /certificates/i })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /my projects/i })).toBeInTheDocument();
   // No admin controls on the shared page.
   expect(screen.queryByText(/admin/i)).not.toBeInTheDocument();
   // The shared page is private — no way back to the full portfolio.

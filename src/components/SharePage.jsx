@@ -5,6 +5,7 @@ import Profile from "./Profile";
 import CV from "./CV";
 import Certificates from "./Certificates";
 import Gallery from "./Gallery";
+import Projects from "./Projects";
 import LoadingSpinner from "./LoadingSpinner";
 import "../styles/ShareLinks.css";
 
@@ -13,6 +14,7 @@ const SECTIONS = [
   { id: "cv", label: "CV & Experience" },
   { id: "certificates", label: "Certificates" },
   { id: "gallery", label: "Gallery" },
+  { id: "projects", label: "My Projects" },
 ];
 
 const ERROR_STATES = {
@@ -137,6 +139,7 @@ const SharePage = ({ token }) => {
         {activeTab === "cv" && <CV isAdmin={false} />}
         {activeTab === "certificates" && <Certificates isAdmin={false} />}
         {activeTab === "gallery" && <Gallery isAdmin={false} />}
+        {activeTab === "projects" && <Projects isAdmin={false} />}
       </main>
       <footer className="footer share-footer">
         <p>Shared portfolio · © {new Date().getFullYear()}</p>

@@ -155,6 +155,19 @@ PUT    /api/gallery/<id>      # Update caption (admin token required)
 DELETE /api/gallery/<id>      # Delete photo (admin token required)
 ```
 
+### Projects
+
+```
+GET    /api/projects          # List projects (public; no admin token)
+POST   /api/projects          # Create project (admin token required)
+PUT    /api/projects/<id>     # Update project (admin token required)
+DELETE /api/projects/<id>     # Delete project (admin token required)
+```
+
+Project writes use the existing `X-Admin-Token` authorization guard. Optional
+preview uploads use the existing Cloudinary configuration and the multipart
+field name `image`. Live and GitHub URLs must be valid HTTP(S) URLs.
+
 ### Utilities
 
 ```
@@ -167,7 +180,7 @@ All endpoints return a standardized JSON response (`{ status, message, data? }`)
 
 ## 💾 Database
 
-### Auto-Created Tables
+### Tables
 
 The application automatically creates these tables on first run:
 
@@ -175,6 +188,21 @@ The application automatically creates these tables on first run:
 2. **cv_entries** - Education, experience, and skills
 3. **certificates** - Certificates with images
 4. **gallery_photos** - Photo gallery with captions
+5. **portfolio_projects** - Persistent project cards and links
+
+The projects table is an additive migration; it is not created by the API
+request path. Apply it once to the configured MySQL/MariaDB database before
+deploying the updated backend:
+
+```bash
+mysql -u "$DB_USER" -p "$DB_NAME" < migrations/001_create_portfolio_projects.sql
+```
+
+On Windows, run the same SQL file using MySQL Workbench, or from PowerShell:
+
+```powershell
+Get-Content .\migrations\001_create_portfolio_projects.sql | mysql -u root -p portfolio
+```
 
 ### Database Schema
 
@@ -212,6 +240,8 @@ CREATE TABLE gallery_photos (
   caption VARCHAR(255),
   image_url VARCHAR(255) NOT NULL
 );
+
+-- Projects: see migrations/001_create_portfolio_projects.sql
 ```
 
 ## 📤 File Upload
@@ -235,6 +265,7 @@ CREATE TABLE gallery_photos (
 - Profile image: `profile_image`
 - Certificates: `image`
 - Gallery: `image`
+- Projects: `image`
 
 ## 🧪 Testing
 

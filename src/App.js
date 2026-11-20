@@ -1,8 +1,7 @@
 import './App.css';
 import Profile from './components/Profile';
 import CV from './components/CV';
-import Certificates from './components/Certificates';
-import Gallery from './components/Gallery';
+import Projects from './components/Projects';
 import { useState, useEffect } from 'react';
 import AdminLogin from './components/AdminLogin';
 import SharePage from './components/SharePage';
@@ -10,7 +9,7 @@ import ShareLinks from './components/ShareLinks';
 import api, { assetUrl } from './api';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('about');
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => Boolean(sessionStorage.getItem('portfolio_admin_token')));
   const [profile, setProfile] = useState(null);
@@ -70,10 +69,9 @@ function App() {
   }
 
   const navigation = [
-    { id: 'profile', label: 'Profile' },
-    { id: 'cv', label: 'CV & Experience' },
-    { id: 'certificates', label: 'Certificates' },
-    { id: 'gallery', label: 'Gallery' },
+    { id: 'about', label: 'About' },
+    { id: 'experience', label: 'Experience' },
+    { id: 'projects', label: 'Projects' },
     ...(isAdmin ? [{ id: 'share', label: 'Share Portfolio' }] : [])
   ];
 
@@ -111,10 +109,9 @@ function App() {
       </nav>
 
       <main className="content">
-        {activeTab === 'profile' && <Profile isAdmin={isAdmin} />}
-        {activeTab === 'cv' && <CV isAdmin={isAdmin} />}
-        {activeTab === 'certificates' && <Certificates isAdmin={isAdmin} />}
-        {activeTab === 'gallery' && <Gallery isAdmin={isAdmin} />}
+        {activeTab === 'about' && <Profile isAdmin={isAdmin} />}
+        {activeTab === 'experience' && <CV isAdmin={isAdmin} />}
+        {activeTab === 'projects' && <Projects isAdmin={isAdmin} />}
         {activeTab === 'share' && <ShareLinks />}
       </main>
 
